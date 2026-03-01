@@ -30,15 +30,34 @@ sudo systemctl start redis
 ```
 
 ## Contributing
-1. Fork it (<https://github.com/yourname/yourproject/fork>)
-2. Create your feature branch (`git checkout -b feature/fooBar`)
-3. Commit your changes (`git commit -am 'Add some fooBar'`)
-4. Push to the branch (`git push origin feature/fooBar`)
-5. Create a new Pull Request
-6. Understanding the Game Base Class Structure for making new games:\
-    All games made for Jitsi Games must be built off of the 'Game' class. The Game class provides a framework for managing game state and synchronizing it with other players using WebSocket. It includes essential methods that your new game will inherit:
-    
-    initializeGameState(): Sets up the initial game state for your specific game.
-    saveGameState(partialState): Sends updates of the game state over WebSocket.
-    mergePartialState(partialState): Receives and merges incoming game state updates from other players, keeping clients synchronized.
-    handleRestartGame(): Resets the game state to its initial configuration and broadcasts the reset.
+
+1. **Fork it**: ([https://github.com/yourname/yourproject/fork](https://github.com/yourname/yourproject/fork))
+2. **Create your feature branch**: `git checkout -b feature/fooBar`
+3. **Commit your changes**: `git commit -am 'Add some fooBar'`
+4. **Push to the branch**: `git push origin feature/fooBar`
+5. **Create a new Pull Request**
+
+---
+
+### 🎮 Building New Games
+
+All games for **Jitsi Games** must extend the `Game` base class. This framework handles the "heavy lifting" of WebSocket networking and state synchronization so you can focus on the HTML/CSS game logic.
+
+
+
+#### Core Methods
+When creating your game class, you will interact with these inherited methods:
+
+* **`initializeGameState()`**:  Define the starting data structure for your game (e.g., `board: []`, `score: 0`).
+* **`renderGame(gameInfo)`**: Use this to inject your HTML into the DOM and set up event listeners.
+* **`saveGameState()`**: Call this whenever a player makes a move. It broadcasts your local `this.gameState` to the opponent.
+* **`mergePartialState(partialState)`**: Automatically receives and merges incoming data from other players to keep both clients in sync.
+* **`handleRestartGame()`**: Resets the game to its initial configuration and broadcasts the reset to the other player.
+
+#### The Development Pattern
+To ensure players stay in sync, always follow this 3-step cycle for any player action:
+1.  **Update**: Modify the local `this.gameState` object.
+2.  **Sync**: Call `this.saveGameState()` to send the update over WebSockets.
+3.  **Refresh**: Call your own `updateUI()` method to reflect the changes on the screen.
+
+> **Note:** Use `this._dataClient.playerId` to verify if the local user is the "active" player before allowing them to make a move!
