@@ -6,7 +6,9 @@ const joinGameRoutes = require('./joinGame');
 const leaveGameRoutes = require('./leaveGame');
 
 const router = express.Router();
-
+router.get('/', (req, res) => {
+  res.status(200).send('Welcome to Jitsi Games Server');
+});
 router.use(gameRoutes);
 router.use(joinGameRoutes);
 router.use(leaveGameRoutes);
