@@ -43,8 +43,8 @@ function injectGame(gameInfo, gameType, dataClient) {
     const link = document.createElement('link');
     import(`../js/games/${gameType}.js`)
         .then(module => {
+            //Just to be clear this is not the actual 'Game' class this is the selected game that was chosen from the home screen selection
             const Game = module.default;
-            console.log(dataClient)
             const game = new Game(dataClient);
             game.renderGame(gameInfo);
         });

@@ -20,6 +20,7 @@ export default class DataClient {
 
         this.ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            console.log(data)
             this.handleMessage(data);
         };
 
@@ -42,6 +43,7 @@ export default class DataClient {
 
         if (message.gameState) {
             const { gameId, gameState } = message;
+            console.log(gameId, gameState)
             if (this.gameId === gameId && this.onGameStateUpdate) {
                 // Merge the partial game state into the existing local game state
                 this.mergePartialState(gameState); 
@@ -81,6 +83,7 @@ export default class DataClient {
     }
 
     async createGame(gameData) {
+        console.log(gameData)
         try {
             const response = await fetch(`${this.apiUrl}game`, {
                 method: 'POST',
@@ -139,7 +142,7 @@ export default class DataClient {
                 const errorText = await response.text();
                 throw new Error(`HTTP error! Status: ${response.status}, message: ${errorText}`);
             }
-
+            console.log(gameId, "DA ID")
             const result = await response.json();
             this.gameId = gameId;
             this.initGameState(); // Initialize game state after joining
@@ -171,6 +174,7 @@ export default class DataClient {
                 gameId: this.gameId, 
                 playerId: this.playerId 
             });
+            console.log("initing gs" ,message)
             this.ws.send(message);
         } else {
             console.error('WebSocket is not open');

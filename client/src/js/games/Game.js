@@ -7,8 +7,8 @@ export default class Game {
         this._dataClient.connectWebSocket();
     }
 
-    saveGameState(gameState) {
-        this._dataClient.sendGameStateUpdate(gameState);
+    saveGameState() {
+        this._dataClient.sendGameStateUpdate(this.gameState);
     }
 
     handleRestartGame() {
