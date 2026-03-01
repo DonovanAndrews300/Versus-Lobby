@@ -60,7 +60,6 @@ export default class TicTacToe extends Game {
         this.gameState.game[clickedCellIndex] = this.gameState.currentPlayer;
         this.handleResult();
         this.handlePlayerChange();
-
         this.updateGrid();
         this.saveGameState();
     }
