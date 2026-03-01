@@ -18,7 +18,6 @@ export default class Game {
     }
 
     mergePartialState(partialState) {
-        console.log(partialState,this.gameState)
         Object.keys(partialState).forEach((key) => {
             if(Array.isArray(partialState[key])){
                 this.gameState[key] = partialState[key];
