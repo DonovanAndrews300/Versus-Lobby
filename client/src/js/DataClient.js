@@ -130,7 +130,7 @@ export default class DataClient {
 
     async joinGame(gameId, playerId) {
         try {
-            const response = await fetch(`${this.apiUrl}joinGame`, {
+            const response = await fetch(`/${this.apiUrl}joinGame`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

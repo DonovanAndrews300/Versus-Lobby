@@ -5,29 +5,51 @@ services:
     image: redis:alpine
     container_name: jitsi-redis-client
     restart: always
+    networks:
+      - app-network
 
   server:
     build: ./server
     container_name: jitsi-server
     restart: always
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
       REDIS_PORT: 6379
-
     depends_on:
       - redis
+    networks:
+      - app-network
 
   client:
     build: ./client
     container_name: jitsi-client
     restart: always
     ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=https://client:3000
+    - "5173:5173"
     depends_on:
       - server
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: jitsi-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - client
+      - server
+    networks:
+      - app-network
+
+networks:
+    app-network:
+      driver: bridge
