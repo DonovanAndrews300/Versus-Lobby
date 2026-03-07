@@ -30,6 +30,7 @@ function joinGame() {
     _dataClient.playerId = userId;
     _dataClient.joinGame(gameId, userId).then((res) => {
         injectGame(res.game, gameType,_dataClient);
+        _dataClient.initVideoCall()
     }).catch((err) => alert(err));
     
     window.addEventListener('beforeunload', (event) => {
@@ -54,5 +55,5 @@ function injectGame(gameInfo, gameType, dataClient) {
 }
 
 // Call joinGame when the script loads
-joinGame();
-_dataClient.initVideoCall()
+joinGame()
+
