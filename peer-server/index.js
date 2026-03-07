@@ -13,7 +13,7 @@ const peerServer = http.createServer(app);
 
 const options = { debug: true };
 
-app.use('/peerjs', ExpressPeerServer(peerServer, options));
+app.use('/', ExpressPeerServer(peerServer, options));
 
 peerServer.listen(port, () => {
   console.log(`PeerJS server is running on port ${port}`);

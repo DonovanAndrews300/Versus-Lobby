@@ -1,10 +1,28 @@
 version: "3"
 
 services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
   redis:
     image: redis:alpine
     container_name: jitsi-redis-client
     restart: always
+    networks:
+      - app-network
+
+  peerjs:
+    build: ./peer-server
+    container_name: jitsi-peer-server
+    restart: always
+    expose:
+      - "4000"
     networks:
       - app-network
 
@@ -29,7 +47,7 @@ services:
     container_name: jitsi-client
     restart: always
     ports:
-    - "5173:5173"
+      - "5173:5173"
     depends_on:
       - server
     networks:
@@ -51,5 +69,5 @@ services:
       - app-network
 
 networks:
-    app-network:
-      driver: bridge
+  app-network:
+    driver: bridge

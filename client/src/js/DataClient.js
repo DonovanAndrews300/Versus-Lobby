@@ -215,7 +215,7 @@ export default class DataClient {
 
         this.peer.on('open', id => {
             console.log('Peer connection open with ID:', id);
-            this.ws.send(JSON.stringify({ type: "ADD_PEER", peerId: id }));
+            this.ws.send(JSON.stringify({ type: "ADD_PEER", peerId: id, gameId:this.gameId }));
         });
 
         this.peer.on('call', (call) => {
