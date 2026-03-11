@@ -7,7 +7,7 @@ const leaveGameRoutes = require('./leaveGame');
 
 const router = express.Router();
 router.get('/', (req, res) => {
-  res.status(200).send('Welcome to Jitsi Games Server');
+  res.status(200).send('Welcome to Versus Lobby Server');
 });
 router.use(gameRoutes);
 router.use(joinGameRoutes);

@@ -12,14 +12,14 @@ services:
 
   redis:
     image: redis:alpine
-    container_name: jitsi-redis-client
+    container_name: redis-client
     restart: always
     networks:
       - app-network
 
   peerjs:
     build: ./peer-server
-    container_name: jitsi-peer-server
+    container_name: peer-server
     restart: always
     expose:
       - "4000"
@@ -28,7 +28,7 @@ services:
 
   server:
     build: ./server
-    container_name: jitsi-server
+    container_name: server
     restart: always
     expose:
       - "3000"
@@ -44,10 +44,10 @@ services:
 
   client:
     build: ./client
-    container_name: jitsi-client
+    container_name: client
     restart: always
-    ports:
-      - "5173:5173"
+    expose:
+      - "5173"
     depends_on:
       - server
     networks:
@@ -55,7 +55,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: jitsi-nginx
+    container_name: nginx
     restart: always
     ports:
       - "80:80"

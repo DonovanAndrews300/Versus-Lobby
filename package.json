@@ -1,7 +1,7 @@
 {
-  "name": "jitsi-games",
+  "name": "Versus Lobby",
   "version": "1.0.0",
-  "description": "An app that allows you to play html games with your friends! \\ Built with:\\ -Vite\\ -Javascript\\ -Express\\ -Redis\\ -Websockets\\ -(Soon to come!)JitsiMeet API:https://github.com/jitsi/jitsi-meet/blob/master/doc/api.md \\",
+  "description": "An app that allows you to play html games with your friends",
   "main": "index.js",
   "scripts": {
     "start": "cd server/ && npm start",
