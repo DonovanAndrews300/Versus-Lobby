@@ -13,7 +13,7 @@ window.copyURL = function() {
 }
 
 window.goHome= function() {
-    window.location.href = `https://jitsi-games.netlify.app/`;
+    window.location.href = `https://versuslobby.com/`;
 }
 
 function getUrlParams() {

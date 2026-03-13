@@ -1,4 +1,4 @@
-# Jitsi-Games
+# Versus Lobby
 An app that allows you to play html games with your friends! \
 **Read the Whole Readme if you wish to contribute!**\
 Built with:\
@@ -41,7 +41,7 @@ sudo systemctl start redis
 
 ### 🎮 Building New Games
 
-All games for **Jitsi Games** must extend the `Game` base class. This framework handles the "heavy lifting" of WebSocket networking and state synchronization so you can focus on the HTML/CSS game logic.
+All games for **Versus Lobby** must extend the `Game` base class. This framework handles the "heavy lifting" of WebSocket networking and state synchronization so you can focus on the HTML/CSS game logic.
 
 
 
