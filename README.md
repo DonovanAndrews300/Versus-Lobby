@@ -1,6 +1,6 @@
 # Versus Lobby
 An app that allows you to play html games with your friends! \
-**Read the Whole Readme if you wish to contribute!**\
+**Read the whole readme if you wish to contribute!**\
 Built with:\
 -Vite\
 -Javascript\
@@ -13,21 +13,10 @@ Built with:\
 ```sh
 git clone
 ```
-client 
 ```sh
-cd client/ npm install
-npm run dev
+docker compose up -d --build
 ```
-server
-```sh
-cd server/ npm install
-npm run start
-```
-redis
-```sh
-Install redis to your computer if you haven't already and redis-cli
-sudo systemctl start redis
-```
+
 
 ## Contributing
 
