@@ -56,10 +56,9 @@ services:
   nginx:
     image: nginx:alpine
     container_name: nginx
-    restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "8083:80"
+    restart: always
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
@@ -67,7 +66,10 @@ services:
       - server
     networks:
       - app-network
+      - proxy
 
 networks:
   app-network:
     driver: bridge
+  proxy:
+    external: true

@@ -7,19 +7,20 @@ function generateRandomId() {
 const btn = document.getElementById("create-game-button");
 
 
-btn.addEventListener("click", function () {
-    const gameId = generateRandomId();
+btn.addEventListener("click", async () => {
     const gameSelect = document.getElementById('game-select');
     const selectedGame = gameSelect.value;
-    console.log(selectedGame);
-    const protoGame = {
-        gameId: gameId,
-        players: [],
-        gameState: {}
-    };
 
-    const _dataClient = new DataClient(config.apiUrl, config.wsUrl);
-    _dataClient.createGame(protoGame).then(() => {
-        window.location.href = `/src/pages/gameContainer.html?id=${gameId}&gameType=${selectedGame}`;
-    });
-  });
+    const _dataClient = new DataClient(config.wsUrl, config.apiUrl);
+    const result = await _dataClient.createGame({
+            gameType: selectedGame
+        });
+
+    const data = await result.json();
+
+
+
+const gameId = data.gameId;
+    window.location.href =
+        `/src/pages/gameContainer.html?id=${gameId}`;
+});
