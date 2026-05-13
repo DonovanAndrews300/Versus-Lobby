@@ -3,108 +3,47 @@ import Game from './Game.js';
 export default class TicTacToe extends Game {
     constructor(dataClient) {
         super(dataClient);
+
         console.log('Constructing TicTacToe now');
 
-        this._dataClient.onGameStateUpdate = (newGameState) => {
-            this.mergePartialState(newGameState);
-
-            if (newGameState.gameStarted && !this.gameStarted) {
-                this.handleStartGameFromSync?.();
-            }
-
-            this.updateUI();
-        };
+        this.renderGame();
     }
 
-    initializeGameState() {
-        return {
-            game: ['', '', '', '', '', '', '', '', ''],
-            currentPlayer: 'X'
-        };
-    }
+    // 🎮 USER INPUT → SERVER ACTION
+    handleCellClick(event) {
+        const index = Number(event.target.dataset.cellIndex);
 
-    mergePartialState(newGameState) {
-        if (!newGameState) return;
+        const board = this.state?.game;
+        const cellValue = board?.[index];
 
-        if (newGameState.game) {
-            this.gameState.game = this.gameState.game.map((cell, i) =>
-                newGameState.game[i] !== undefined ? newGameState.game[i] : cell
-            );
-        }
+        if (cellValue) return;
 
-        if (newGameState.currentPlayer !== undefined) {
-            this.gameState.currentPlayer = newGameState.currentPlayer;
-        }
-    }
 
-    updateUI() {
-        this.updateGrid();
-    }
-
-    updateGrid() {
-        const gridCells = document.querySelectorAll('.cell');
-        gridCells.forEach(cell => {
-            const cellIndex = parseInt(cell.getAttribute('data-cell-index'));
-            if (cell.innerHTML !== this.gameState.game[cellIndex]) {
-                cell.innerHTML = this.gameState.game[cellIndex];
-            }
+        this.dispatch({
+            type: "MOVE",
+            index
         });
     }
 
-    handleCellClick(clickedCellEvent) {
-        const clickedCell = clickedCellEvent.target;
-        const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
+    updateUI(state) {
+        if (!state) return;
+        const board = state.board;
+        const cells = document.querySelectorAll('.cell');
 
-        if (this.gameState.game[clickedCellIndex] !== '') return;
-
-        this.gameState.game[clickedCellIndex] = this.gameState.currentPlayer;
-        this.handleResult();
-        this.handlePlayerChange();
-
-        this.updateGrid();
-        this.saveGameState();
-    }
-
-    handlePlayerChange() {
-        this.gameState.currentPlayer =
-            this.gameState.currentPlayer === 'X' ? 'O' : 'X';
-    }
-
-    handleResult() {
-        let roundWon = false;
-        const roundDraw = !this.gameState.game.includes('');
-
-        const winConditions = [
-            [0,1,2],[3,4,5],[6,7,8],
-            [0,3,6],[1,4,7],[2,5,8],
-            [0,4,8],[2,4,6]
-        ];
-
-        winConditions.forEach(([a,b,c]) => {
-            if (
-                this.gameState.game[a] &&
-                this.gameState.game[a] === this.gameState.game[b] &&
-                this.gameState.game[a] === this.gameState.game[c]
-            ) {
-                roundWon = true;
-            }
+        cells.forEach((cell, i) => {
+            const value = board[i];
+            cell.textContent = value || "";
         });
-
-        if (roundWon) {
-            setTimeout(() => alert(`${this.gameState.currentPlayer} has won!`), 10);
-            return;
-        }
-
-        if (roundDraw) {
-            setTimeout(() => alert('Draw!'), 10);
-        }
     }
 
+    // 🧱 INITIAL RENDER
     renderGame() {
         document.querySelector('#gameArea').innerHTML = `
             <div class="grid">
                 ${Array.from({ length: 9 })
-                    .map((_, i) => `<div data-cell-index="${i}" class="cell"></div>`)
+                    .map((_, i) =>
+                        `<div data-cell-index="${i}" class="cell"></div>`
+                    )
                     .join('')}
             </div>
             <div class="buttons">
@@ -112,16 +51,21 @@ export default class TicTacToe extends Game {
             </div>
         `;
 
-        this.updateGrid();
         this.handleClickEvents();
     }
 
+    // 🎯 EVENT BINDING
     handleClickEvents() {
-        document.querySelectorAll('.cell').forEach(cell =>
-            cell.addEventListener('click', event => this.handleCellClick(event))
-        );
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.addEventListener('click', (e) =>
+                this.handleCellClick(e)
+            );
+        });
 
-        document.querySelector('.game--restart')
-            .addEventListener('click', event => this.handleRestartGame(event));
+        document
+            .querySelector('.game--restart')
+            .addEventListener('click', () => {
+                this.dispatch({ type: "RESET_GAME" });
+            });
     }
 }

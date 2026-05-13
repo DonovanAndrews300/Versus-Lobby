@@ -1,166 +1,198 @@
 const WebSocket = require('ws');
-const redisClient = require('./redisClient');
-const { createClient } = require('redis');
 
-const gameRooms = new Map();
+const gameHandlers = {
+  TicTacToe: require('./handlers/tictactoe'),
+};
 
-const redisSubscriber = createClient({ url: process.env.REDIS_URL });
-redisSubscriber.connect();
 
-function attach(server) {
+function createGameHelpers(redisClient, redisPublisher) {
+  return {
+    async getGame(gameId) {
+      const keys = await redisClient.keys('*');
+
+for (const key of keys) {
+  const value = await redisClient.get(key);
+}
+      const raw = await redisClient.get(`game:${gameId}`);
+      return raw ? JSON.parse(raw) : null;
+    },
+
+    async saveGame(gameId, game) {
+      await redisClient.set(`game:${gameId}`, JSON.stringify(game));
+    },
+
+    async publishGame(gameId, gameState) {
+      console.log("publishing"+ gameState)
+      await redisPublisher.publish(
+        `game:${gameId}`,
+        JSON.stringify({ gameId, gameState })
+      );
+    },
+
+    async joinGame(gameId, playerId) {
+      const game = await this.getGame(gameId);
+      if (!game) throw new Error("Game not found id:" + gameId);
+
+      const MAX_PLAYERS = 2;
+
+      if (!game.players.includes(playerId)) {
+        if (game.players.length >= MAX_PLAYERS) {
+          throw new Error("Too many players");
+        }
+
+        game.players.push(playerId);
+        await this.saveGame(gameId, game);
+      }
+
+      return game;
+    },
+
+    async leaveGame(gameId, playerId) {
+      const game = await this.getGame(gameId);
+      if (!game) return;
+
+      game.players = game.players.filter(p => p !== playerId);
+
+      await this.saveGame(gameId, game);
+      await this.publishGame(gameId, game.gameState);
+    }
+  };
+}
+
+
+async function attach(server, redisClient, redisSubscriber) {
+  const redisPublisher = redisClient;
+  const game = createGameHelpers(redisClient, redisPublisher);
+
   const wss = new WebSocket.Server({ server });
-  console.log("WebSocket server attached");
 
-  redisSubscriber.pSubscribe('game:*', (message, channel) => {
+  console.log(" WebSocket server attached");
+
+
+await redisSubscriber.pSubscribe('game:*', (message, channel) => {
+  try {
     const { gameId, gameState } = JSON.parse(message);
-    const clients = gameRooms.get(gameId) || [];
-    clients.forEach(ws => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ gameId, gameState }));
+
+    wss.clients.forEach(ws => {
+      if (
+        ws.readyState === WebSocket.OPEN &&
+        ws.gameId === gameId
+      ) {
+        ws.send(JSON.stringify({
+          type: 'GAME_STATE_UPDATE',
+          gameId,
+          gameState
+        }));
       }
     });
-  });
 
-  function joinRoom(ws, gameId) {
-    if (!gameId) return;
-
-    ws.gameId = gameId;
-
-    if (!gameRooms.has(gameId)) {
-      gameRooms.set(gameId, []);
-    }
-
-    const clients = gameRooms.get(gameId);
-    if (!clients.includes(ws)) {
-      clients.push(ws);
-    }
-
-    console.log("ROOM", gameId, "CLIENT COUNT", clients.length);
+  } catch (err) {
+    console.error("PubSub error:", err);
   }
-
+});
   wss.on('connection', (ws) => {
-    console.log('New client connected');
-    console.log("SERVER INSTANCE:", process.pid);
+    console.log("Client connected");
 
     ws.on('message', async (message) => {
-      let parsedMessage;
+      let parsed;
+
       try {
-        parsedMessage = JSON.parse(message);
-        console.log("INCOMING:", parsedMessage);
+        parsed = JSON.parse(message);
       } catch {
-        console.error("Invalid JSON");
+        console.error(" Invalid JSON");
         return;
       }
 
-      const { type, gameId, playerId, gameState } = parsedMessage;
-      if (!gameId) return;
+      const { type } = parsed;
 
-      if (playerId) ws.playerId = playerId;
+      try {
+        switch (type) {
 
-      if (type === 'JOIN_GAME') {
-        joinRoom(ws, gameId);
+          // 🎮 JOIN GAME
+          //just pass the type through the function so it knows
+          case 'JOIN_GAME': {
+            const { gameId, playerId } = parsed;
+            const gameState = await game.joinGame(gameId, playerId);
 
-        try {
-          const replies = await redisClient.lRange('activeGames', 0, -1);
-          const games = replies.map(r => JSON.parse(r));
-          const game = games.find(g => g.gameId === gameId);
-          ws.send(JSON.stringify({ gameId, gameState: game?.gameState || {} }));
-        } catch (err) {
-          console.error('Redis error:', err);
-        }
-        return;
-      }
+            ws.gameId = gameId;
+            ws.playerId = playerId;
 
-      if (type === 'ADD_PEER') {
-        ws.peerId = parsedMessage.peerId;
-        const clients = gameRooms.get(ws.gameId) || [];
-        clients.forEach(client => {
-          if (client !== ws && client.peerId) {
-            client.send(JSON.stringify({ type: 'INCOMING_CALL', peerId: ws.peerId }));
+            ws.send(JSON.stringify({
+              type: 'GAME_STATE_INIT',
+              gameId,
+              gameState: gameState.gameState
+            }));
+
+            break;
           }
-        });
-        return;
-      }
-
-      if (type === 'UPDATE_GAME_STATE') {
-        try {
-          const replies = await redisClient.lRange('activeGames', 0, -1);
-          const games = replies.map(r => JSON.parse(r));
-          const gameIndex = games.findIndex(g => g.gameId === gameId);
-          if (gameIndex === -1) return;
-
-          const existingGameState = games[gameIndex].gameState || {};
-
-          const existingBoard =
-            existingGameState.game && existingGameState.game.length
-              ? existingGameState.game
-              : Array(9).fill("");
-
-          const incomingBoard = gameState.game || [];
-
-          const mergedBoard = existingBoard.map((cell, idx) => {
-            const incomingCell = incomingBoard[idx];
-            return incomingCell && incomingCell !== "" ? incomingCell : cell;
-          });
-
-          const updatedState = {
-            ...existingGameState,
-            ...gameState,
-            game: mergedBoard,
-          };
-
-          games[gameIndex].gameState = updatedState;
-          await redisClient.lSet(
-            'activeGames',
-            gameIndex,
-            JSON.stringify(games[gameIndex])
-          );
 
 
-          await redisClient.publish(
-            `game:${gameId}`,
-            JSON.stringify({ gameId, gameState: updatedState })
-          );
+          case 'PLAYER_ACTION': {
+            const { gameId, playerId, action } = parsed;
+            const current = await game.getGame(gameId);
+            if (!current) return;
 
-        } catch (err) {
-          console.error('Redis error:', err);
+            const handler = gameHandlers[current.gameType];
+
+            if (!handler) {
+              console.error(" Missing handler:", current.gameType);
+              return;
+            }
+            const updatedState = handler(
+              current.gameState,
+              action,
+              playerId
+            );
+
+            const updatedGame = {
+              ...current,
+              gameState: updatedState
+            };
+
+            await game.saveGame(gameId, updatedGame);
+            await game.publishGame(gameId, updatedState);
+
+            break;
+          }
+
+          case 'ADD_PEER': {
+            const { gameId, peerId } = parsed;
+
+            ws.gameId = gameId;
+            ws.peerId = peerId;
+
+            wss.clients.forEach(client => {
+              if (
+                client !== ws &&
+                client.gameId === gameId &&
+                client.peerId
+              ) {
+                client.send(JSON.stringify({
+                  type: 'INCOMING_CALL',
+                  peerId
+                }));
+              }
+            });
+
+            break;
+          }
+
+          default:
+            console.warn(" Unknown message type:", type);
         }
+
+      } catch (err) {
+        console.error(" Handler error:", err);
+
+        ws.send(JSON.stringify({
+          type: 'ERROR',
+          message: err.message
+        }));
       }
     });
 
     ws.on('close', async () => {
-      console.log('Client disconnected');
-
-      const clients = gameRooms.get(ws.gameId) || [];
-      const index = clients.indexOf(ws);
-      if (index !== -1) clients.splice(index, 1);
-      if (clients.length === 0) gameRooms.delete(ws.gameId);
-
-      if (!ws.playerId || !ws.gameId) return;
-
-      try {
-        const replies = await redisClient.lRange('activeGames', 0, -1);
-        const games = replies.map(r => JSON.parse(r));
-        const gameIndex = games.findIndex(g => g.gameId === ws.gameId);
-        if (gameIndex === -1) return;
-
-        const game = games[gameIndex];
-        const playerIndex = game.players.indexOf(ws.playerId);
-        if (playerIndex !== -1) game.players.splice(playerIndex, 1);
-
-        await redisClient.lSet(
-          'activeGames',
-          gameIndex,
-          JSON.stringify(game)
-        );
-
-        await redisClient.publish(
-          `game:${ws.gameId}`,
-          JSON.stringify({ gameId: ws.gameId, gameState: game.gameState })
-        );
-      } catch (err) {
-        console.error('Redis error:', err);
-      }
+      console.log(" Client disconnected");
     });
   });
 
